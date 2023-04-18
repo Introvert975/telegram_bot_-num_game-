@@ -17,58 +17,65 @@ bot = Bot(TOKEN_BOT)
 dp = Dispatcher(bot)
 
 
-user = {'game': False, 'secretNumber': 0, 'try': 0}
+#user = {'game': False, 'secretNumber': 0, 'try': 0}
+
+
 
 @dp.message_handler(commands=["start"])
 async def bot_start(message: types.Message):
+    user = {'game': False, 'secretNumber': 0, 'try': 0}
     markup = InlineKeyboardMarkup()
     button_yes = InlineKeyboardButton("Играть", callback_data="b_yes")
     button_no = InlineKeyboardButton("Не хочу играть", callback_data="b_no")
     markup.add(button_yes, button_no)
     await bot.send_sticker(message.from_user.id, sticker = hello[random.randint(0, 3)])
     await message.answer("Привет, Хочешь сыграть?", reply_markup=markup)
-@dp.callback_query_handler(lambda call: call.data == "b_yes")
-async def bot_game(callback: types.callback_query):
-    user['game'] = True
-    user['try'] = 9
-    user['secretNumber'] = random.randint(1, 1000)
-    await bot.send_sticker(callback.from_user.id,
-                           sticker=thinking[random.randint(0, 3)])
+    @dp.callback_query_handler(lambda call: call.data == "b_yes")
+    async def bot_game(callback: types.callback_query):
+        user['game'] = True
+        user['try'] = 9
+        user['secretNumber'] = random.randint(1, 1000)
+        await bot.send_sticker(callback.from_user.id,
+                               sticker=thinking[random.randint(0, 3)])
 
-    await callback.message.answer("Я загадал число от 1 до 1000 \n У тебя есть 10 попыток")
+        await callback.message.answer("Я загадал число от 1 до 1000 \n У тебя есть 10 попыток")
 
 
-@dp.message_handler()
-async def in_game(message: types.Message):
-    if user['game'] == True:
-        number = int(message.text)
-        if (user['secretNumber'] == number) or (user['try'] == 0):
+        @dp.message_handler()
+        async def in_game(message: types.Message):
+            if user['game'] == True:
+                try:
+                    number = int(message.text)
+                    if (user['secretNumber'] == number) or (user['try'] == 0):
 
+                        user['game'] = False
+                        markup = InlineKeyboardMarkup()
+                        button_yes = InlineKeyboardButton("Да", callback_data="b_yes")
+                        button_no = InlineKeyboardButton("Нет", callback_data="b_no")
+                        markup.add(button_yes, button_no)
+                        if user['secretNumber'] == number:
+                            await bot.send_sticker(message.from_user.id, sticker= wins[random.randint(0, 3)])
+                            await message.answer("Поздравляю, вы выиграли\n Сыграем ещё? ", reply_markup=markup)
+                        else:
+                            await bot.send_sticker(message.from_user.id, sticker=fails[random.randint(0, 2)])
+                            await message.answer("Хи-хи-хи) Не повезло , вы проиграли \n Может сыграем ещё?", reply_markup=markup)
+
+                    elif user['secretNumber'] < number:
+                        user['try'] -= 1
+                        await message.answer(f"Моё число меньше \n Oсталось попыток: {user['try']+1}")
+                    elif user['secretNumber'] > number:
+                        user['try'] -= 1
+                        await message.answer(f"Моё число больше \n Oсталось попыток: {user['try']+1}")
+                except:
+                    user['try'] -= 1
+                    await message.answer(f"Это не число \n Oсталось попыток: {user['try'] + 1}")
+
+
+        @dp.callback_query_handler(lambda call: call.data == "b_no")
+        async def bot_not_game(callback: types.callback_query):
             user['game'] = False
-            markup = InlineKeyboardMarkup()
-            button_yes = InlineKeyboardButton("Да", callback_data="b_yes")
-            button_no = InlineKeyboardButton("Нет", callback_data="b_no")
-            markup.add(button_yes, button_no)
-            if user['secretNumber'] == number:
-                await bot.send_sticker(message.from_user.id, sticker= wins[random.randint(0, 3)])
-                await message.answer("Поздравляю, вы выиграли\n Сыграем ещё? ", reply_markup=markup)
-            else:
-                await bot.send_sticker(message.from_user.id, sticker=fails[random.randint(0, 2)])
-                await message.answer("Хи-хи-хи) Не повезло , вы проиграли \n Может сыграем ещё?", reply_markup=markup)
-
-        elif user['secretNumber'] < number:
-            user['try'] -= 1
-            await message.answer(f"Моё число меньше \n Oсталось попыток: {user['try']+1}")
-        elif user['secretNumber'] > number:
-            user['try'] -= 1
-            await message.answer(f"Моё число больше \n Oсталось попыток: {user['try']+1}")
-
-
-@dp.callback_query_handler(lambda call: call.data == "b_no")
-async def bot_not_game(callback: types.callback_query):
-    user['game'] = False
-    await bot.send_sticker(callback.from_user.id, sticker=exits[random.randint(0, 4)])
-    await callback.message.answer("Очень жаль.. :(\nЕсли понадоблюсь отправь /start")
+            await bot.send_sticker(callback.from_user.id, sticker=exits[random.randint(0, 4)])
+            await callback.message.answer("Очень жаль.. :(\nЕсли понадоблюсь отправь /start")
 
 
 def BOT():
